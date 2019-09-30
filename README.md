@@ -9,6 +9,10 @@ This utility can be installed with any plugin manager, presumably, such as:
 
 ```
 Plug 'norcalli/nvim_utils'
+
+" Then after plug#end()
+
+lua require 'nvim_utils'
 ```
 
 # Example
