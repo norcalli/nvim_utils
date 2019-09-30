@@ -14,6 +14,8 @@ Plug 'norcalli/nvim_utils'
 # Example
 
 ```lua
+local todo_mappings = require 'todo'
+
 function text_object_replace(is_visual_mode)
   local register = nvim.v.register
 	local function replace()
