@@ -17,16 +17,16 @@ Plug 'norcalli/nvim_utils'
 local todo_mappings = require 'todo'
 
 function text_object_replace(is_visual_mode)
-  local register = nvim.v.register
+	local register = nvim.v.register
 	local function replace()
 		return nvim.fn.getreg(register, 1, 1)
 	end
-  if is_visual_mode then
-    local visual_mode = nvim_visual_mode()
-    nvim_buf_transform_region_lines(nil, '<', '>', visual_mode, replace)
-  else
-    nvim_text_operator_transform_selection(replace)
-  end
+	if is_visual_mode then
+		local visual_mode = nvim_visual_mode()
+    	nvim_buf_transform_region_lines(nil, '<', '>', visual_mode, replace)
+	else
+		nvim_text_operator_transform_selection(replace)
+	end
 end
 
 local text_object_mappings = {
