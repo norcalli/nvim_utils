@@ -23,7 +23,7 @@ function text_object_replace(is_visual_mode)
 	end
 	if is_visual_mode then
 		local visual_mode = nvim_visual_mode()
-    	nvim_buf_transform_region_lines(nil, '<', '>', visual_mode, replace)
+		nvim_buf_transform_region_lines(nil, '<', '>', visual_mode, replace)
 	else
 		nvim_text_operator_transform_selection(replace)
 	end
