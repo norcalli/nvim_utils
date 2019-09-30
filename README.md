@@ -7,7 +7,7 @@ I use it.
 
 This utility can be installed with any plugin manager, presumably, such as:
 
-```
+```vim
 Plug 'norcalli/nvim_utils'
 
 " Then after plug#end()
