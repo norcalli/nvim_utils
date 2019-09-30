@@ -11,6 +11,74 @@ This utility can be installed with any plugin manager, presumably, such as:
 Plug 'norcalli/nvim_utils'
 ```
 
+# Example
+
+```lua
+function text_object_replace(is_visual_mode)
+  local register = nvim.v.register
+	local function replace()
+		return nvim.fn.getreg(register, 1, 1)
+	end
+  if is_visual_mode then
+    local visual_mode = nvim_visual_mode()
+    nvim_buf_transform_region_lines(nil, '<', '>', visual_mode, replace)
+  else
+    nvim_text_operator_transform_selection(replace)
+  end
+end
+
+local text_object_mappings = {
+	["n xr"]  = { [[<Cmd>lua text_object_replace(false)<CR>]],               noremap = true; };
+	["x xr"]  = { [[:lua text_object_replace(true)<CR>]],                    noremap = true; };
+	["oil"]   = { [[<Cmd>normal! $v^<CR>]],  noremap = true; };
+	["xil"]   = { [[<Cmd>normal! $v^<CR>]],  noremap = true; };
+}
+
+local other_mappings = {
+	["nY"] = { [["+y]], noremap = true; };
+	["xY"] = { [["+y]], noremap = true; };
+	-- Highlight current cword
+	["n[,"]  = { function()
+		-- \C forces matching exact case
+		-- \M forces nomagic interpretation
+		-- \< and \> denote whole word match
+		nvim.fn.setreg("/", ([[\C\M\<%s\>]]):format(nvim.fn.expand("<cword>")), "c")
+		nvim.o.hlsearch = true
+	end };
+	["i<c-a>"] = { function()
+		local pos = nvim.win_get_cursor(0)
+		local line = nvim.buf_get_lines(0, pos[1] - 1, pos[1], false)[1]
+		local _, start = line:find("^%s+")
+		nvim.win_set_cursor(0, {pos[1], start})
+	end };
+}
+
+local mappings = {
+	text_object_mappings,
+	other_mappings,
+}
+
+nvim_apply_mappings(vim.tbl_extend("error", unpack(mappings)), default_options)
+
+FILETYPE_HOOKS = {
+	todo = function()
+		nvim.command('setl foldlevel=2')
+		nvim_apply_mappings(todo_mappings, { buffer = true })
+	end;
+}
+
+
+local autocmds = {
+	todo = {
+		{"BufEnter",     "*.todo", "setl ft=todo"};
+		{"FileType",     "todo",   "lua FILETYPE_HOOKS.todo()"};
+	};
+}
+
+nvim_create_augroups(autocmds)
+```
+
+
 # Things `nvim_utils` provides
 
 There are two types of things provided:
