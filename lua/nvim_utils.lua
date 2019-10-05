@@ -33,7 +33,7 @@ function nvim_mark_or_index(buf, input)
 		-- end
 		-- return result
 	end
-	assert(false, "Invalid input")
+	assert(false, ("nvim_mark_or_index: Invalid input buf=%q, input=%q"):format(buf, input))
 end
 
 -- TODO should I be wary of `&selection` in the nvim_buf_get functions?
@@ -428,6 +428,13 @@ local function escape_keymap(key)
 	return 'k'..key:gsub('.', string.byte)
 end
 
+local valid_modes = {
+	n = 'n'; v = 'v'; x = 'x'; i = 'i';
+	o = 'o'; t = 't'; c = 'c'; s = 's';
+	-- :map! and :map
+	['!'] = '!'; [' '] = '';
+}
+
 -- TODO(ashkan) @feature Disable noremap if the rhs starts with <Plug>
 function nvim_apply_mappings(mappings, default_options)
 	-- May or may not be used.
@@ -441,6 +448,9 @@ function nvim_apply_mappings(mappings, default_options)
 			bufnr = options.buffer
 		end
 		local mode, mapping = key:match("^(.)(.+)$")
+		assert(mode, "nvim_apply_mappings: invalid mode specified for keymapping "..key)
+		assert(valid_modes[mode], "nvim_apply_mappings: invalid mode specified for keymapping. mode="..mode)
+		mode = valid_modes[mode]
 		local rhs = options[1]
 		-- Remove this because we're going to pass it straight to nvim_set_keymap
 		options[1] = nil
@@ -448,23 +458,47 @@ function nvim_apply_mappings(mappings, default_options)
 			-- Use a value that won't be misinterpreted below since special keys
 			-- like <CR> can be in key, and escaping those isn't easy.
 			local escaped = escape_keymap(key)
+			local key_mapping
+			if options.dot_repeat then
+				local key_function = rhs
+				rhs = function()
+					key_function()
+					-- -- local repeat_expr = key_mapping
+					-- local repeat_expr = mapping
+					-- repeat_expr = vim.api.nvim_replace_termcodes(repeat_expr, true, true, true)
+					-- nvim.fn["repeat#set"](repeat_expr, nvim.v.count)
+					nvim.fn["repeat#set"](nvim.replace_termcodes(key_mapping, true, true, true), nvim.v.count)
+				end
+				options.dot_repeat = nil
+			end
 			if options.buffer then
 				-- Initialize and establish cleanup
 				if not LUA_BUFFER_MAPPING[bufnr] then
 					LUA_BUFFER_MAPPING[bufnr] = {}
 					-- Clean up our resources.
 					vim.api.nvim_buf_attach(bufnr, false, {
-							on_detach = function()
-								LUA_BUFFER_MAPPING[bufnr] = nil
-							end
-						})
+						on_detach = function()
+							LUA_BUFFER_MAPPING[bufnr] = nil
+						end
+					})
 				end
 				LUA_BUFFER_MAPPING[bufnr][escaped] = rhs
-				rhs = ("<Cmd>lua LUA_BUFFER_MAPPING[vim.api.nvim_get_current_buf()].%s()<CR>"):format(escaped)
+				-- TODO HACK figure out why <Cmd> doesn't work in visual mode.
+				if mode == "x" or mode == "v" then
+					key_mapping = (":<C-u>lua LUA_BUFFER_MAPPING[%d].%s()<CR>"):format(bufnr, escaped)
+				else
+					key_mapping = ("<Cmd>lua LUA_BUFFER_MAPPING[%d].%s()<CR>"):format(bufnr, escaped)
+				end
 			else
 				LUA_MAPPING[escaped] = rhs
-				rhs = ("<Cmd>lua LUA_MAPPING.%s()<CR>"):format(escaped)
+				-- TODO HACK figure out why <Cmd> doesn't work in visual mode.
+				if mode == "x" or mode == "v" then
+					key_mapping = (":<C-u>lua LUA_MAPPING.%s()<CR>"):format(escaped)
+				else
+					key_mapping = ("<Cmd>lua LUA_MAPPING.%s()<CR>"):format(escaped)
+				end
 			end
+			rhs = key_mapping
 			options.noremap = true
 			options.silent = true
 		end
@@ -482,6 +516,9 @@ function nvim_create_augroups(definitions)
 		vim.api.nvim_command('augroup '..group_name)
 		vim.api.nvim_command('autocmd!')
 		for _, def in ipairs(definition) do
+			-- if type(def) == 'table' and type(def[#def]) == 'function' then
+			-- 	def[#def] = lua_callback(def[#def])
+			-- end
 			local command = table.concat(vim.tbl_flatten{'autocmd', def}, ' ')
 			vim.api.nvim_command(command)
 		end
