@@ -199,6 +199,8 @@ end
 	- The rest of it are options like `silent`, `expr`, `nowait`, `unique`, or `buffer`
 	- I implemented `buffer` support myself. I also implemented the Lua callback support.
 		- You can peek at how this is done by `nvim_print(LUA_MAPPING, LUA_BUFFER_MAPPING)`
+	- Other keys supported:
+		- `dot_repeat: bool`. If you want to add support for `tpope/vim-repeat`, this will call `repeat#set` for lua function keybindings.
 	- For a lot of examples, look at `example_dotfiles/init.lua:82`.
 	- Example:
 ```lua
